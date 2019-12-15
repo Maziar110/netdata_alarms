@@ -32,8 +32,6 @@ for ip in ips:
     # To set host automatically, uncomment bellow line:
     host = host_extractor(ip)
 
-    # Set host manually, TO use it uncomment bellow line:
-    # host = '172.16.77.20:19999'
 
     alarms_url = "http://" + host + "/api/v1/alarms"
     info_url = "http://" + host + "/api/v1/info"
