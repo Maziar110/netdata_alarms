@@ -1,6 +1,8 @@
-# What this project does?
+# Project Usage?
 
-If you work in a monitoring role or any other parts of a technical team that works with NetData as a monitoring tools on your server(s), you might need sometimes just to see your NetData alarms.
+If you work in a monitoring role or any other parts of a technical team that works with NetData as a monitoring tool on your server(s), you might need sometimes just to see your NetData alarms which this simple program shows them all in one page(Terminal).
+
+**This program just collects _critical_ alarms**
 ## Requirement:
 
 1- you need python3.x to be installed:
