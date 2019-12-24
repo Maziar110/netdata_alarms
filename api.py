@@ -1,4 +1,5 @@
 import requests
+from ipaddress import ip_address
 
 
 class color:
@@ -14,10 +15,6 @@ class color:
     END = '\033[0m'
 
 
-file = open("./ip_hosts.txt", "r")
-ips = file.readlines()
-
-
 def host_extractor(ip):
     # We'll develop this method later in order to get all hosts addresses and use them in the project
     ip2 = str(ip).replace("\n", "")
@@ -25,13 +22,81 @@ def host_extractor(ip):
     return host_ip
 
 
-alarm_req = ""
-info_req = ""
-for ip in ips:
+def ipEntered(val):
+    try:
+        return ip_address(val)
+    except ValueError:
+        print(color.BOLD, color.RED, "Not a valid IP address", color.END)
+        return "false"
 
-    # To set host automatically, uncomment bellow line:
+
+def Alarm_extractor(alarms_details):
+    warning = []
+    critical = []
+    for items in alarms_details:
+        if alarms_details[items]["status"] == "CRITICAL":
+            error = alarms_details[items]["info"]
+            value = alarms_details[items]["value"]
+            alarm = "Error in " + items + ": " + error + " The value is: " + color.BOLD + str(value) + color.END
+            critical.append(alarm)
+        elif alarms_details[items]["status"] == "WARNING":
+            error = alarms_details[items]["info"]
+            alarm = "Error in " + items + ": " + error
+            warning.append(alarm)
+    return (warning, critical)
+
+
+def bulk_check():
+    file = open("./ip_hosts.txt", "r")
+    ips = file.readlines()
+    log = open("./netdata.log", "w")
+    alarm_req = ""
+    info_req = ""
+
+    for ip in ips:
+
+        # To set host automatically, uncomment bellow line:
+        host = host_extractor(ip)
+
+        alarms_url = "http://" + host + "/api/v1/alarms"
+        info_url = "http://" + host + "/api/v1/info"
+
+        try:
+            alarm_req = requests.get(url=alarms_url)
+            info_req = requests.get(url=info_url)
+            data = alarm_req.json()
+            alarms_details = data["alarms"]
+        except Exception as e:
+            print(color.PURPLE, color.BOLD, "Exception happend: ", color.END, color.CYAN, str(e)
+                  , " **Alaram method result:", str(alarm_req))
+        try:
+            info = info_req.json()
+            server_name = info["mirrored_hosts"]
+        except Exception as e:
+            print(color.PURPLE, color.BOLD, "Exception happend: ", color.END, color.CYAN, str(e)
+                  , " and info method result:", str(info_req), color.END)
+
+        try:
+            alarms = Alarm_extractor(alarms_details)
+            print(color.BOLD, color.BLUE, "Critical errors and Warnings in ", server_name, " with IP: ", host,
+                  " is(are):", color.END)
+            for warning in alarms[0]:
+                print(color.YELLOW, warning, color.END)
+            for critical in alarms[1]:
+                print(color.RED, critical, color.END)
+                log.write("host: " + host +" " +critical+ "\n")
+        except Exception as e:
+            print(e)
+
+    file.close()
+    log.close()
+
+
+def single_check(ip):
+    server_name = ""
+    alarm_req = ""
+    info_req = ""
     host = host_extractor(ip)
-
 
     alarms_url = "http://" + host + "/api/v1/alarms"
     info_url = "http://" + host + "/api/v1/info"
@@ -41,32 +106,35 @@ for ip in ips:
         info_req = requests.get(url=info_url)
         data = alarm_req.json()
         alarms_details = data["alarms"]
-        alarms = alarms_details.get("info")
-
+    except Exception as e:
+        print(color.PURPLE, color.BOLD, "Exception happend: ", color.END, color.CYAN, str(e)
+              , " **Alaram method result:", str(alarm_req))
+    try:
         info = info_req.json()
         server_name = info["mirrored_hosts"]
-        for items in alarms_details:
-            if alarms_details[items]["status"] == "CRITICAL":
-                print(color.BOLD, color.GREEN, "\n", "We have bellow errors for host " + host +
-                      " in the section of: " + items, ":", color.END)
-                alarms = alarms_details[items]["info"]
-                print(color.BOLD, color.RED, alarms, color.END, "\n")
-
     except Exception as e:
-        if alarm_req != "":
-            data = alarm_req.json()
-            alarms_details = data["alarms"]
-            alarms = alarms_details.get("info")
+        print(color.PURPLE, color.BOLD, "Exception happend: ", color.END, color.CYAN, str(e)
+              , " and info method result:", str(info_req), color.END)
+    try:
+        alarms = Alarm_extractor(alarms_details)
+        print(color.BOLD, color.BLUE, "Critical errors and Warnings in ", server_name, " with IP: ", host, " is(are):",
+              color.END)
+        for warning in alarms[0]:
+            print(color.YELLOW, warning, color.END)
+        for critical in alarms[1]:
+            print(color.RED, critical, color.END)
+    except Exception as e:
+        print(e)
 
-            for items in alarms_details:
-                if alarms_details[items]["status"] == "CRITICAL":
-                    print(color.BOLD,color.GREEN,"\n", "We have bellow errors for host " + host +
-                          " in the section of: " + items, ":", color.END)
-                    alarms = alarms_details[items]["info"]
-                    print(color.BOLD, color.RED, alarms, color.END, "\n")
 
-        print(color.PURPLE ,color.BOLD,"Exception happend: ",color.END, color.CYAN, str(e)
-              , " **Alaram method result:" , str(alarm_req)
-                 , " and info method result:" , str(info_req), color.END)
+user_input = input("Please input your host address- **all** for bulk and **<ip>** to specify desired host IP:")
 
-file.close()
+if str(user_input) == "all":
+    bulk_check()
+
+else:
+    ip = ipEntered(str(user_input))
+    if ip == "false":
+        print(color.BOLD, color.BLUE, "Please enter a valid IP")
+    else:
+        single_check(ip)
