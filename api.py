@@ -37,7 +37,7 @@ def Alarm_extractor(alarms_details):
         if alarms_details[items]["status"] == "CRITICAL":
             error = alarms_details[items]["info"]
             value = alarms_details[items]["value"]
-            alarm = "Error in " + items + ": " + error + " The value is: " + color.BOLD + str(value) + color.END
+            alarm = "Error in " + items + ": " + error + " The value is: " + str(value)
             critical.append(alarm)
         elif alarms_details[items]["status"] == "WARNING":
             error = alarms_details[items]["info"]
